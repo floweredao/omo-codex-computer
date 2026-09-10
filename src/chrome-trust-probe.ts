@@ -58,6 +58,7 @@ async function runLiveProbe(
   const threads = new CodexThreadManager(client);
   const transport = new ChromeTransport(client, threads, {
     extraTrustedAppServerVersions: [candidate],
+    requiredAppServerVersion: candidate,
   });
   const runtime = new ChromeRuntime({ client, threads, transport });
   const probeSessionId = `chrome-trust-probe-${randomUUID()}`;
