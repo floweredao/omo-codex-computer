@@ -11,6 +11,7 @@ import { AppServerRequestError, type AppServerClient } from "./app-server-client
 import type { CodexThreadManager } from "./thread-manager";
 import {
   ComputerUseTransport,
+  ComputerUsePreDispatchError,
   SkyComputerUseError,
   type RawComputerUseToolCallResponse,
 } from "./computer-use-transport";
@@ -110,6 +111,7 @@ export class ComputerUseBackend {
     try {
       response = await this.transport.callTool(cwd, tool, args, signal);
     } catch (error) {
+      if (error instanceof ComputerUsePreDispatchError) throw error;
       const originalMessage = error instanceof Error ? error.message : String(error);
       if (getNumericErrorCode(error) === -10012
         || originalMessage.includes(STOPPED_APPLICATION_SESSION_TEXT)) throw error;
@@ -161,7 +163,10 @@ export class ComputerUseBackend {
   ): Promise<ComputerUseToolResult> {
     try {
       return await this.callToolOnce(cwd, tool, args, signal);
-    } catch (error) {
+    } catch (failure) {
+      const preDispatch = failure instanceof ComputerUsePreDispatchError
+        || (failure instanceof SkyComputerUseError && failure.phase === "bootstrap");
+      const error = failure instanceof ComputerUsePreDispatchError ? failure.cause : failure;
       const message = error instanceof Error ? error.message : String(error);
       const stoppedSession = error instanceof ComputerUseSessionStoppedError
         || getNumericErrorCode(error) === -10012
@@ -177,7 +182,6 @@ export class ComputerUseBackend {
 
       if (error instanceof McpToolCallError) throw error;
       const staleThread = /thread not found|invalid thread id/i.test(message);
-      const preDispatch = !(error instanceof SkyComputerUseError) || error.phase === "bootstrap";
       if (!mayRetryStaleThread || !staleThread || !preDispatch) throw error;
 
       logDebug("computer-use.tool.reset-thread", {
@@ -202,7 +206,8 @@ export class ComputerUseBackend {
         .map((block) => block.text)
         .join("\n");
       return formatInvalidAppDiagnostic(originalMessage, app, listAppsText, undefined, listApps.structuredContent);
-    } catch (error) {
+    } catch (failure) {
+      const error = failure instanceof ComputerUsePreDispatchError ? failure.cause : failure;
       const message = error instanceof Error ? error.message : String(error);
       if (error instanceof ComputerUseSessionStoppedError
         || getNumericErrorCode(error) === -10012

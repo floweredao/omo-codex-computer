@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { EventEmitter } from "node:events";
+import { EventEmitter, once } from "node:events";
 import { PassThrough } from "node:stream";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppServerClient, AppServerRequestError, type ServerRequestResponder } from "../src/app-server-client";
@@ -25,25 +25,25 @@ function createFakeProcess(options: FakeProcessOptions = {}) {
     exitCode: number | null;
     stdout: PassThrough;
     stderr: PassThrough;
-    stdin: { write(chunk: string, cb?: (error?: Error | null) => void): boolean };
+    stdin: EventEmitter & { write(chunk: string, cb?: (error?: Error | null) => void): boolean };
     kill(signal?: NodeJS.Signals): boolean;
   };
 
   child.exitCode = null;
   child.stdout = new PassThrough();
   child.stderr = new PassThrough();
-  child.stdin = {
+  child.stdin = Object.assign(new EventEmitter(), {
     write(chunk: string, cb?: (error?: Error | null) => void) {
       writes.push(chunk);
       cb?.(options.writeError ?? null);
       return true;
     },
-  };
+  });
   child.kill = () => {
-    setTimeout(() => {
+    queueMicrotask(() => {
       child.exitCode = 0;
       child.emit("exit", 0, null);
-    }, 0);
+    });
     return true;
   };
 
@@ -73,8 +73,12 @@ function deliver(client: AppServerClient, message: unknown) {
 }
 
 async function deliverFromChild(child: { stdout: PassThrough }, message: unknown) {
-  child.stdout.write(`${JSON.stringify(message)}\n`);
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise<void>((resolve, reject) => {
+    child.stdout.write(`${JSON.stringify(message)}\n`, (error) => {
+      if (error) reject(error);
+      else resolve();
+    });
+  });
 }
 
 describe("AppServerClient", () => {
@@ -260,7 +264,6 @@ describe("AppServerClient", () => {
     });
 
     deliver(client, { id: "abc", method: "mcpServer/elicitation/request", params: { message: "Allow?" } });
-    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(writes.at(-1)).toBe(`${JSON.stringify({ id: "abc", result: { action: "accept", content: {} } })}\n`);
   });
@@ -270,7 +273,6 @@ describe("AppServerClient", () => {
     const { writes } = attachFakeProcess(client);
 
     deliver(client, { id: "abc", method: "unknown/request", params: {} });
-    await new Promise((resolve) => setTimeout(resolve, 0));
 
     const response = JSON.parse(writes.at(-1) ?? "{}");
     expect(response.id).toBe("abc");
@@ -297,7 +299,6 @@ describe("AppServerClient", () => {
     client.start();
 
     responder?.accept({ action: "accept", content: { stale: true } });
-    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(second.writes.join("")).not.toContain("old-request");
     expect(second.writes.join("")).not.toContain("stale");
@@ -329,7 +330,6 @@ describe("AppServerClient", () => {
     expect(pendingCount(client)).toBe(0);
 
     expect(() => deliver(client, { id: 1, result: "late" })).not.toThrow();
-    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(settled).toHaveBeenCalledTimes(1);
     expect(pendingCount(client)).toBe(0);
   });
@@ -359,7 +359,6 @@ describe("AppServerClient", () => {
     const rawChunk = "secret app-server stderr\n";
 
     child.stderr.write(rawChunk);
-    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(stderrWrite).not.toHaveBeenCalledWith(expect.stringContaining(rawChunk));
   });
@@ -371,6 +370,55 @@ describe("AppServerClient", () => {
     child.emit("error", new Error("spawn failed"));
 
     expect(client.isRunning()).toBe(false);
+  });
+
+  it("handles a broken stdin pipe without throwing into the host", async () => {
+    // Given a running app-server whose stdin pipe fails independently.
+    const client = new AppServerClient();
+    const { child } = startWithFakeProcess(client);
+    const exited = once(child, "exit");
+
+    // When the writable stream reports the failure.
+    // Then the error is contained instead of becoming an uncaught exception.
+    expect(() => child.stdin.emit("error", new Error("write EPIPE"))).not.toThrow();
+    await exited;
+    expect(client.isRunning()).toBe(false);
+  });
+
+  it("rejects outstanding requests with the stdin error before stopping the child", async () => {
+    // Given an unanswered request and a subscribed child-exit event.
+    const client = new AppServerClient();
+    const { child } = startWithFakeProcess(client);
+    const error = new Error("write EPIPE");
+    const rejected = expect(client.request("pending", {}, 0)).rejects.toBe(error);
+    const exited = once(child, "exit");
+
+    // When the stdin stream fails.
+    child.stdin.emit("error", error);
+
+    // Then the caller receives the cause and the broken process is stopped.
+    await rejected;
+    await exited;
+    expect(client.isRunning()).toBe(false);
+    expect(pendingCount(client)).toBe(0);
+  });
+
+  it("does not stop a replacement child when an old stdin stream errors", async () => {
+    // Given a replacement child with a pending request.
+    const client = new AppServerClient();
+    const first = startWithFakeProcess(client);
+    await client.stop();
+    const second = startWithFakeProcess(client);
+    const request = client.request("fresh", {}, 0);
+
+    // When the detached stream emits a late error.
+    first.child.stdin.emit("error", new Error("late EPIPE"));
+
+    // Then the replacement still accepts its own response.
+    await deliverFromChild(second.child, { id: 1, result: "ok" });
+    await expect(request).resolves.toBe("ok");
+    expect(client.isRunning()).toBe(true);
+    await client.stop();
   });
 
   it("clears running process state after child exit", () => {

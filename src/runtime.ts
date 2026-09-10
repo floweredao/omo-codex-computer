@@ -113,7 +113,7 @@ export class ComputerUseRuntime {
     const contextSignal = signal ?? (ctx as ContextWithSignal).signal;
     if (contextSignal?.aborted) return Promise.reject(createAbortError(`Aborted Computer Use tool call ${tool}`));
 
-    const runtimeContext = contextSignal && !(ctx as ContextWithSignal).signal
+    const runtimeContext = contextSignal && (ctx as ContextWithSignal).signal !== contextSignal
       ? ({ ...ctx, signal: contextSignal } as ExtensionContext)
       : ctx;
 
@@ -126,7 +126,7 @@ export class ComputerUseRuntime {
     const contextSignal = signal ?? (ctx as ContextWithSignal).signal;
     if (contextSignal?.aborted) return Promise.reject(createAbortError(`Aborted Computer Use app target resolution for ${app}`));
 
-    const runtimeContext = contextSignal && !(ctx as ContextWithSignal).signal
+    const runtimeContext = contextSignal && (ctx as ContextWithSignal).signal !== contextSignal
       ? ({ ...ctx, signal: contextSignal } as ExtensionContext)
       : ctx;
 

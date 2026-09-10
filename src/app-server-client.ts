@@ -65,6 +65,13 @@ export class AppServerClient {
     this.stdout = createInterface({ input: child.stdout });
     this.stdout.on("line", (line) => this.handleLine(child, line));
 
+    child.stdin.on("error", (error) => {
+      if (this.process !== child) return;
+      logDebug("app-server.stdin-error", { message: error.message });
+      this.rejectAll(error);
+      void this.stop();
+    });
+
     child.stderr.on("data", (chunk) => {
       if (process.env.OMO_CODEX_COMPUTER_DEBUG === "1") {
         logDebug("app-server.stderr", { bytes: Buffer.byteLength(String(chunk)) });

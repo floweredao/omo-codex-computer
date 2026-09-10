@@ -476,6 +476,29 @@ describe("ChromeTransport", () => {
     expect(client.calls.filter(({ method }) => method === "plugin/list")).toHaveLength(2);
   });
 
+  it("invalidates executions waiting on preparation when reset replaces the generation", async () => {
+    const { client, transport } = createTransport();
+    const capabilities = Promise.withResolvers<ReturnType<typeof readyCapabilities>>();
+    evaluateChromeCapabilities.mockReturnValueOnce(capabilities.promise);
+    const preparation = transport.prepare("/work", initialize);
+    const onDispatch = vi.fn();
+    const execution = transport.execute("/work", identity, { kind: "open" }, undefined, onDispatch);
+    const outcome = execution.then(
+      (result) => ({ result }),
+      (error: unknown) => ({ error }),
+    );
+
+    transport.reset();
+    await transport.prepare("/work", initialize);
+    client.responses.push(success({ kind: "opened" }));
+    capabilities.resolve(readyCapabilities());
+    await preparation;
+
+    expect(await outcome).toMatchObject({ error: { code: "not_prepared" } });
+    expect(onDispatch).not.toHaveBeenCalled();
+    expect(client.calls.filter(({ method }) => method === "mcpServer/tool/call")).toHaveLength(0);
+  });
+
   it("resets preparation and fails closed when capability discovery is unavailable", async () => {
     const { client, threads, transport } = createTransport();
     await transport.prepare("/work", initialize);

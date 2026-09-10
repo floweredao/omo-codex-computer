@@ -215,7 +215,10 @@ export class ChromeTransport {
     private readonly client: Pick<AppServerClient, "request">,
     private readonly threads: Pick<CodexThreadManager, "getThread">,
     /** Probe-only trust for /codex-computer trust; production wiring omits it. */
-    private readonly options: { extraTrustedAppServerVersions?: readonly string[] } = {},
+    private readonly options: {
+      extraTrustedAppServerVersions?: readonly string[];
+      requiredAppServerVersion?: string;
+    } = {},
   ) {}
 
   reset(): void {
@@ -269,6 +272,7 @@ export class ChromeTransport {
     }
     const prepared = await preparation;
     throwIfAborted(signal);
+    if (this.preparation !== preparation) throw new ChromeTransportError("not_prepared");
 
     const payload = Buffer.from(JSON.stringify({ identity, operation }), "utf8").toString("base64");
     const program = buildChromeProgram(prepared.capabilities.clientPath, payload);
@@ -328,6 +332,11 @@ export class ChromeTransport {
     if (!isReadyChromeCapabilities(capabilities)) {
       const message = readSafeUnavailableMessage(capabilities);
       throw new ChromeTransportError("unavailable", message);
+    }
+
+    if (this.options.requiredAppServerVersion !== undefined
+      && capabilities.appServerVersion !== this.options.requiredAppServerVersion) {
+      throw new ChromeTransportError("unavailable");
     }
 
     throwIfAborted(signal);
