@@ -314,6 +314,26 @@ describe("ComputerUseBackend", () => {
     expect(toolRequests(client).map((call) => call.params.threadId)).toEqual(["thread-1"]);
   });
 
+  it("preserves a pre-dispatch user stop during an Invalid app diagnostic lookup", async () => {
+    const client = new FakeClient();
+    client.toolResponses.push(new AppServerRequestError("Invalid app", -10010));
+    const stoppedError = new AppServerRequestError("Stopped", -10012, { reason: "user_stopped" });
+    const threads = new FakeThreads();
+    let starts = 0;
+    threads.getThreadId = async () => {
+      if (starts++ > 0) throw stoppedError;
+      return "thread-1";
+    };
+    const backend = new ComputerUseBackend(client, threads);
+
+    const result = await backend.callTool("/tmp", "get_app_state", { app: "Missing" })
+      .catch((error: unknown) => error);
+
+    expect(result).toBe(stoppedError);
+    expect(threads.resetCount).toBe(1);
+    expect(toolRequests(client)).toHaveLength(1);
+  });
+
   it("retries a mutating call only when a stale thread fails before Sky dispatch", async () => {
     const client = new FakeClient();
     client.pluginResponse = currentPluginList();
@@ -366,6 +386,33 @@ describe("ComputerUseBackend", () => {
     expect(calls.filter((call) => call.params.arguments.title === "Computer Use: click")).toHaveLength(1);
   });
 
+  it.each(["direct", "sky"] as const)(
+    "does not replay a %s RPC dispatch failure that mentions a stale thread",
+    async (route) => {
+      const client = new FakeClient();
+      const failure = new AppServerRequestError("thread not found after dispatch", -32603);
+      if (route === "sky") {
+        client.mcpResponse = { data: [server("node_repl", ["js"])] };
+        client.toolResponses.push(skySuccess("bootstrap"));
+      }
+      client.toolResponses.push(failure);
+      // A replay would succeed, concealing the original failure from the caller.
+      client.toolResponses.push(...(route === "sky"
+        ? [skySuccess("bootstrap"), skySuccess("dispatch", null)]
+        : [{ content: [] }]));
+      const threads = new FakeThreads();
+      threads.ids = ["thread-1", "thread-2"];
+      const backend = new ComputerUseBackend(client, threads);
+
+      const result = await backend.callTool("/tmp", "click", { app: "Calculator", x: 12, y: 34 })
+        .catch((error: unknown) => error);
+
+      expect(result).toBe(failure);
+      expect(threads.resetCount).toBe(0);
+      expect(toolRequests(client)).toHaveLength(route === "sky" ? 2 : 1);
+    },
+  );
+
   it("resets local state and does not replay a stopped mutating call", async () => {
     const client = new FakeClient();
     client.toolResponses.push({
@@ -388,8 +435,9 @@ describe("ComputerUseBackend", () => {
     expect(toolRequests(client).map((call) => call.params.tool)).toEqual(["click"]);
   });
 
-  it("bubbles retry failure", async () => {
+  it("bubbles retry failure before dispatch", async () => {
     const client = new FakeClient();
+    client.mcpResponse = { data: [server("node_repl", ["js"])] };
     client.toolResponses.push(new Error("thread not found: thread-1"), new Error("still broken"));
     const threads = new FakeThreads();
     threads.ids = ["thread-1", "thread-2"];

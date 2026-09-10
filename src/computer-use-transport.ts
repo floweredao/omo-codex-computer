@@ -101,6 +101,14 @@ export class SkyComputerUseError extends Error {
   }
 }
 
+/** The requested tool has not reached its dispatch RPC. */
+export class ComputerUsePreDispatchError extends Error {
+  constructor(cause: unknown) {
+    super(cause instanceof Error ? cause.message : String(cause), { cause });
+    this.name = "ComputerUsePreDispatchError";
+  }
+}
+
 export class SkyComputerUseProtocolError extends Error {
   readonly route = "sky" as const;
 
@@ -154,7 +162,12 @@ export class ComputerUseTransport {
     signal: AbortSignal | undefined,
     mayReselect: boolean,
   ): Promise<RawComputerUseToolCallResponse> {
-    const route = await this.getSelectedRoute(cwd, undefined, signal);
+    let route: SelectedRoute;
+    try {
+      route = await this.getSelectedRoute(cwd, undefined, signal);
+    } catch (error) {
+      throw new ComputerUsePreDispatchError(error);
+    }
     if (route.kind === "direct") return this.callDirect(route, cwd, tool, args, signal);
 
     try {
@@ -254,6 +267,14 @@ export class ComputerUseTransport {
     readSkyEnvelope(response, "bootstrap");
   }
 
+  private async getThreadIdBeforeDispatch(cwd: string): Promise<string> {
+    try {
+      return await this.threads.getThreadId(cwd);
+    } catch (error) {
+      throw new ComputerUsePreDispatchError(error);
+    }
+  }
+
   private async callDirect(
     route: SelectedDirectRoute,
     cwd: string,
@@ -261,7 +282,7 @@ export class ComputerUseTransport {
     args: Record<string, unknown>,
     signal?: AbortSignal,
   ): Promise<RawComputerUseToolCallResponse> {
-    const threadId = await this.threads.getThreadId(cwd);
+    const threadId = await this.getThreadIdBeforeDispatch(cwd);
     const response = await this.client.request<RawMcpToolCallResponse>("mcpServer/tool/call", {
       server: route.serverName,
       threadId,
@@ -281,7 +302,7 @@ export class ComputerUseTransport {
   ): Promise<RawComputerUseToolCallResponse> {
     const adaptedArgs = adaptSkyArguments(tool, args);
     const payload = Buffer.from(JSON.stringify({ tool, args: adaptedArgs }), "utf8").toString("base64");
-    const threadId = await this.threads.getThreadId(cwd);
+    const threadId = await this.getThreadIdBeforeDispatch(cwd);
     const response = await this.client.request<RawMcpToolCallResponse>("mcpServer/tool/call", {
       server: route.nodeReplServerName,
       threadId,
