@@ -1,6 +1,6 @@
 {
   "name": "omo-codex-computer",
-  "version": "0.1.1",
+  "version": "0.1.6",
   "description": "OMO Native plugin for OpenAI Codex Computer Use and first-party Chrome automation through Codex app-server",
   "repository": {
     "type": "git",
