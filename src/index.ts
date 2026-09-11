@@ -7,7 +7,6 @@ import { runChromeTrustProbe } from "./chrome-trust-probe";
 import { clearPersistedAppServerVersions } from "./chrome-trust";
 import { COMPUTER_USE_TOOL_NAMES, registerComputerUseTools } from "./computer-use-tools";
 import { logDebug } from "./log";
-import { createWritePermissionGuard } from "./permissions";
 import { ComputerUseRuntime } from "./runtime";
 import { checkComputerUseStatus, formatComputerUseStatus } from "./status";
 
@@ -33,12 +32,6 @@ export default function omoCodexComputer(pi: ExtensionAPI): void {
   registerChromeTools(pi, chromeRuntime);
 
   pi.on("resources_discover", () => ({ skillPaths: [SKILLS_DIR] }));
-  pi.on("tool_call", createWritePermissionGuard({
-    // OMO's permission extension already owns print/RPC policy. A second
-    // plugin prompt cannot be answered without UI, so only interactive calls
-    // receive this additional confirmation gate.
-    allowNonInteractiveWrites: () => true,
-  }));
 
   pi.on("session_start", async (_event, ctx) => {
     try {

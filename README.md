@@ -103,13 +103,9 @@ information.
 
 ### Confirmations and permissions
 
-- Read-only tools add no second plugin confirmation.
-- Interactive OMO sessions require an additional plugin confirmation for every
-  write-capable Computer Use or Chrome call. Rejection or confirmation failure
-  blocks the call.
-- Print and RPC sessions delegate write authorization to OMO permission
-  presets and explicit rules. Use a restrictive policy appropriate to the
-  automation.
+- All tools delegate authorization to OMO permission presets and explicit
+  rules in interactive, print, and RPC sessions. The plugin adds no extra
+  confirmation dialog.
 - Native Computer Use elicitation fails closed without an interactive UI,
   except for the explicit development-only app allowlist.
 - Chrome elicitation is always declined.

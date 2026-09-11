@@ -70,8 +70,8 @@ release workflow owns patch-version commits.
 - Keep the tools searchable unless explicit activation is required.
 - Use `agent_settled`, not `agent_end`, for terminal run cleanup.
 - Keep `session_shutdown` cleanup idempotent.
-- Interactive write tools require the plugin confirmation guard.
-- Print/RPC writes defer to OMO's permission preset and rules.
+- All tool calls defer to OMO's permission preset and rules without an extra
+  plugin confirmation.
 - Native Computer Use no-UI elicitation declines.
 - Chrome elicitation always declines.
 

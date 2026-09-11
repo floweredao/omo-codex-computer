@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { CHROME_TOOL_NAMES } from "../src/chrome-tools";
+import { COMPUTER_USE_TOOL_NAMES } from "../src/computer-use-tools";
 import omoCodexComputer from "../src/index";
 
 const runtimeMock = vi.hoisted(() => {
@@ -163,27 +165,25 @@ describe("OMO Chrome lifecycle", () => {
     expect(pi.handlers.has("agent_settled")).toBe(true);
   });
 
-  it("does not add a plugin confirmation in RPC mode even when UI is available", async () => {
-    // Given: OMO RPC mode, where the host permission extension owns policy
-    // even though extension dialogs are available through the RPC protocol.
+  it.each(["tui", "rpc", "print"])("does not prompt or block tool calls in %s mode", async (mode) => {
+    // Given: the host owns permissions, and no plugin dialog is approved.
     const pi = createFakePi();
     omoCodexComputer(pi as never);
-    const permission = pi.handlers.get("tool_call")?.[0];
-    const confirm = vi.fn(async () => true);
+    const confirm = vi.fn(async () => false);
+    const results: unknown[] = [];
 
-    // When: an RPC Chrome write reaches the plugin guard after host policy.
-    const result = await permission?.(
-      {
-        type: "tool_call",
-        toolCallId: "call-1",
-        toolName: "chrome_open",
-        input: { url: "https://example.com/" },
-      },
-      { mode: "rpc", hasUI: true, ui: { confirm } },
-    );
+    // When: each registered automation tool passes through plugin hooks.
+    for (const toolName of [...CHROME_TOOL_NAMES, ...COMPUTER_USE_TOOL_NAMES]) {
+      for (const handler of pi.handlers.get("tool_call") ?? []) {
+        results.push(await handler(
+          { type: "tool_call", toolCallId: "call-1", toolName, input: {} },
+          { mode, hasUI: mode !== "print", ui: { confirm } },
+        ));
+      }
+    }
 
     // Then: the plugin does not add a second confirmation gate.
-    expect(result).toBeUndefined();
     expect(confirm).not.toHaveBeenCalled();
+    expect(results.every((result) => result === undefined)).toBe(true);
   });
 });
