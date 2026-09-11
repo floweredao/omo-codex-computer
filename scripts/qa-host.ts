@@ -53,7 +53,6 @@ const requiredEvents = [
   "resources_discover",
   "session_shutdown",
   "session_start",
-  "tool_call",
 ];
 
 if (toolNames.length !== 15) {

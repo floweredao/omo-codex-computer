@@ -26,8 +26,8 @@ This project must not commit credentials, tokens, private keys, screenshots,
 recursive redaction layer.
 
 Desktop automation must fail closed when required native permissions or Codex
-dependencies are unavailable. Interactive write tools require confirmation;
-headless calls remain subject to OMO's permission preset and explicit rules.
+dependencies are unavailable. All tool calls remain subject to OMO's permission
+preset and explicit rules, without an additional plugin confirmation.
 
 Chrome must keep browser handles and `node_repl` private, reject untrusted
 app-server versions and broken plugin contracts, decline elicitation, isolate
