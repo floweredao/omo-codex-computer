@@ -167,13 +167,29 @@ export function registerComputerUseTools(pi: ExtensionAPI, runtime: ComputerUseR
         const reroute = tool.name === "computer_use_type_text" ? routeTypeText(params) : undefined;
         const upstreamTool = reroute?.tool ?? tool.mcpToolName;
         const upstreamParams = reroute?.params ?? params as Record<string, unknown>;
-        const result = signal
-          ? await runtime.callTool(ctx, upstreamTool, upstreamParams, signal)
-          : await runtime.callTool(ctx, upstreamTool, upstreamParams);
-        return {
-          content: result.content,
-          details: summarizeResult(result),
-        };
+        try {
+          const result = signal
+            ? await runtime.callTool(ctx, upstreamTool, upstreamParams, signal)
+            : await runtime.callTool(ctx, upstreamTool, upstreamParams);
+          return {
+            content: result.content,
+            details: summarizeResult(result),
+          };
+        } catch (error) {
+          // Upstream paste applies the text, then waits for the app to read the
+          // clipboard and can report -10005 even though the paste landed. Verify
+          // the text reached the app instead of reporting a false failure; the
+          // no-replay invariant forbids a blind retry here either way.
+          const pastedText = upstreamParams.text;
+          if (upstreamTool === "paste"
+            && typeof pastedText === "string"
+            && typeof upstreamParams.app === "string"
+            && isClipboardReadTimeout(error)) {
+            const confirmed = await confirmPastedText(runtime, ctx, upstreamParams.app, pastedText, signal);
+            if (confirmed) return confirmed;
+          }
+          throw error;
+        }
       },
     };
     pi.registerTool(definition as Parameters<ExtensionAPI["registerTool"]>[0]);
@@ -299,5 +315,43 @@ function summarizeResult(result: ComputerUseToolResult): ComputerUseToolSummary 
 
 function getContentType(block: OmpContentBlock): string {
   return typeof block.type === "string" ? block.type : "unknown";
+}
+
+const CLIPBOARD_READ_TIMEOUT_PATTERN = /-10005|timed out waiting.*clipboard/i;
+
+function isClipboardReadTimeout(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return CLIPBOARD_READ_TIMEOUT_PATTERN.test(message);
+}
+
+// After a -10005 the clipboard write already happened, so the text may have
+// landed anyway. Re-read the app state and look for the pasted text; a match
+// converts the false failure into a success annotated with the upstream error.
+async function confirmPastedText(
+  runtime: ComputerUseRuntime,
+  ctx: ExtensionContext,
+  app: string,
+  text: string,
+  signal: AbortSignal | undefined,
+): Promise<{ content: OmpContentBlock[]; details: ComputerUseToolSummary } | undefined> {
+  if (text.length === 0) return undefined;
+  try {
+    const state = signal
+      ? await runtime.callTool(ctx, "get_app_state", { app }, signal)
+      : await runtime.callTool(ctx, "get_app_state", { app });
+    const stateText = state.content
+      .map((block) => (block.type === "text" ? block.text : ""))
+      .join("\n");
+    if (!stateText.includes(text)) return undefined;
+    const content: OmpContentBlock[] = [
+      {
+        type: "text",
+        text: "Pasted (verified in app state; upstream reported a clipboard read timeout).",
+      },
+    ];
+    return { content, details: summarizeResult({ content }) };
+  } catch {
+    return undefined;
+  }
 }
 

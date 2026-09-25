@@ -150,6 +150,48 @@ describe("OMO Computer Use tools", () => {
     expect(callTool).toHaveBeenLastCalledWith(ctx, "set_value", { app: "Notes", element_index: "133", value: "한글 텍스트" });
   });
 
+  it("confirms clipboard timeout pastes by reading app state instead of failing", async () => {
+    // Given: upstream paste throws -10005 but the text did land.
+    const pasted = "안녕하세요 omo codex computer use 데모입니다";
+    const callTool = vi.fn(async (_ctx: unknown, name: string) => {
+      if (name === "paste") {
+        throw new Error("Computer Use server error -10005: Timed out waiting for the application to read the clipboard");
+      }
+      return { content: [{ type: "text", text: `text entry area Value: ${pasted}` }] };
+    });
+    const pi = createFakePi();
+    registerComputerUseTools(pi as never, { callTool } as unknown as ComputerUseRuntime);
+    const ctx = { cwd: "/tmp/project" };
+
+    // When: a paste call hits the clipboard-read timeout.
+    const result = await getTool(pi, "computer_use_paste")
+      .execute("call-1", { app: "Notes", format: "text", text: pasted }, undefined, undefined, ctx) as {
+        content?: Array<{ text?: string }>;
+      };
+
+    // Then: the verified paste reports success rather than the false error.
+    expect(String(result.content?.[0]?.text)).toContain("Pasted");
+    expect(callTool).toHaveBeenLastCalledWith(ctx, "get_app_state", { app: "Notes" });
+  });
+
+  it("propagates clipboard timeout when the text is not found in app state", async () => {
+    // Given: upstream paste throws -10005 and the state shows no pasted text.
+    const callTool = vi.fn(async (_ctx: unknown, name: string) => {
+      if (name === "paste") {
+        throw new Error("Computer Use server error -10005: Timed out waiting for the application to read the clipboard");
+      }
+      return { content: [{ type: "text", text: "text entry area Value: (empty)" }] };
+    });
+    const pi = createFakePi();
+    registerComputerUseTools(pi as never, { callTool } as unknown as ComputerUseRuntime);
+
+    // When/Then: the original upstream error surfaces instead of a false pass.
+    await expect(
+      getTool(pi, "computer_use_paste")
+        .execute("call-1", { app: "Notes", format: "text", text: "missing text" }, undefined, undefined, { cwd: "/tmp/project" }),
+    ).rejects.toThrow("-10005");
+  });
+
   it("keeps click pairing provider-compatible and validates before dispatch", () => {
     // Given: the model-visible click tool.
     const pi = createFakePi();
