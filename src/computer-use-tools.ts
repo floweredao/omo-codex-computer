@@ -255,7 +255,7 @@ function prepareComputerUseArguments(
   args: unknown,
 ): Record<string, unknown> {
   if (!isRecord(args)) throw new Error("Computer Use tool arguments must be an object");
-  if (toolName !== "computer_use_click") return args;
+  if (toolName !== "computer_use_click" && toolName !== "computer_use_scroll") return args;
 
   const hasElementIndex = typeof args.element_index === "string";
   const hasX = typeof args.x === "number", hasY = typeof args.y === "number";

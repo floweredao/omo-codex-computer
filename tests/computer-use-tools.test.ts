@@ -192,6 +192,22 @@ describe("OMO Computer Use tools", () => {
     ).rejects.toThrow("-10005");
   });
 
+  it("accepts coordinate scroll without element_index and rejects unpaired coordinates", () => {
+    // Given: a registered scroll tool.
+    const pi = createFakePi();
+    registerComputerUseTools(pi as never, { callTool: vi.fn() } as unknown as ComputerUseRuntime);
+    const scroll = getTool(pi, "computer_use_scroll");
+    const prepareArguments = scroll.prepareArguments as (args: unknown) => unknown;
+
+    // When/Then: x/y alone scroll at a point; a lone coordinate fails fast.
+    expect(() => prepareArguments({ app: "Notes", x: 100, y: 200, direction: "down" })).not.toThrow();
+    expect(() => prepareArguments({ app: "Notes", x: 100, direction: "down" }))
+      .toThrow("Provide element_index or both x and y");
+    expect(() => prepareArguments({ app: "Notes", element_index: "9", direction: "down" })).not.toThrow();
+    expect(() => prepareArguments({ app: "Notes", direction: "down" }))
+      .toThrow("Provide element_index or both x and y");
+  });
+
   it("keeps click pairing provider-compatible and validates before dispatch", () => {
     // Given: the model-visible click tool.
     const pi = createFakePi();

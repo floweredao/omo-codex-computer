@@ -386,8 +386,8 @@ function adaptSkyArguments(
     case "press_key":
       return copyDefinedArguments(args, ["app", "key"]);
     case "scroll": {
-      const adapted = copyDefinedArguments(args, ["app", "direction", "pages"]);
-      copySkyElementIndex(args, adapted, true);
+      const adapted = copyDefinedArguments(args, ["app", "direction", "pages", "x", "y"]);
+      copySkyElementIndex(args, adapted, false);
       return adapted;
     }
     case "drag":
