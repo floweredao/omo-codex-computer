@@ -1,10 +1,9 @@
 name: CI
 
+# Automatic triggers disabled (no GitHub Actions authorization); run manually
+# via workflow_dispatch when needed. Re-enable push/pull_request to restore CI.
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read

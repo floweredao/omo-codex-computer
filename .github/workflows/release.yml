@@ -1,11 +1,8 @@
 name: Release
 
+# Automatic triggers disabled (no GitHub Actions authorization); run manually
+# via workflow_dispatch when needed. Re-enable push/workflow_run to restore.
 on:
-  push:
-    branches: [main]
-  workflow_run:
-    workflows: ["Auto-merge owner PRs"]
-    types: [completed]
   workflow_dispatch:
 
 permissions:
