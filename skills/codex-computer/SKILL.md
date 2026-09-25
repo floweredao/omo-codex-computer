@@ -11,7 +11,7 @@ Use these tools when the user asks you to inspect or operate a local macOS app:
 2. Prefer element indexes over raw coordinates.
 3. After every click, type, keypress, paste, scroll, drag, or value change, call `computer_use_get_app_state` again to verify the result.
 4. If an app-state response is only a diff and does not contain the needed target or context, call `computer_use_get_app_state` with `disableDiff: true` to request a complete accessibility tree.
-5. Prefer `computer_use_paste` over `computer_use_type_text` for large or formatted content; it pastes text, Markdown, or HTML and restores the previous clipboard afterwards.
+5. Prefer `computer_use_paste` over `computer_use_type_text` for large or formatted content; it pastes text, Markdown, or HTML and restores the previous clipboard afterwards. `computer_use_type_text` injects key events, which cannot produce non-ASCII text (Korean, Japanese, Chinese, emoji); such input is automatically pasted via the clipboard instead.
 6. Ask the user before sending messages, submitting forms, deleting data, making purchases, changing account/security settings, or transmitting sensitive information.
 7. If a permission prompt is declined, stop the desktop task and explain what is needed.
 

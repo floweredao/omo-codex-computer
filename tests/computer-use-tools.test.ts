@@ -117,6 +117,32 @@ describe("OMO Computer Use tools", () => {
     expect(result).toMatchObject({ details: { hasStructuredContent: true } });
   });
 
+  it("reroutes non-ASCII type_text to clipboard paste before dispatch", async () => {
+    // Given: a runtime returning a safe result.
+    const callTool = vi.fn(async () => ({
+      content: [{ type: "text", text: "ok" }],
+      structuredContent: { ok: true },
+    }));
+    const pi = createFakePi();
+    registerComputerUseTools(pi as never, { callTool } as unknown as ComputerUseRuntime);
+    const ctx = { cwd: "/tmp/project" };
+
+    // When: type_text receives text the key-injection path cannot produce.
+    await getTool(pi, "computer_use_type_text")
+      .execute("call-1", { app: "Notes", text: "안녕하세요" }, undefined, undefined, ctx);
+
+    // Then: the call reroutes to the clipboard-based paste tool with the
+    // format argument the upstream paste contract requires.
+    expect(callTool).toHaveBeenCalledWith(ctx, "paste", { app: "Notes", text: "안녕하세요", format: "text" });
+
+    // When: ASCII text still types normally.
+    await getTool(pi, "computer_use_type_text")
+      .execute("call-2", { app: "Notes", text: "hello\nworld" }, undefined, undefined, ctx);
+
+    // Then: the upstream tool stays type_text.
+    expect(callTool).toHaveBeenLastCalledWith(ctx, "type_text", { app: "Notes", text: "hello\nworld" });
+  });
+
   it("keeps click pairing provider-compatible and validates before dispatch", () => {
     // Given: the model-visible click tool.
     const pi = createFakePi();

@@ -56,7 +56,7 @@ const COMPUTER_USE_UPSTREAM_TOOLS = [
     name: "computer_use_type_text",
     mcpToolName: "type_text",
     label: "Type Text",
-    description: "Type text into an application through Computer Use.",
+    description: "Type text into an application through Computer Use. Key injection only supports ASCII; text containing non-ASCII characters (for example Korean, Japanese, Chinese, or emoji) is pasted via the clipboard instead of typed, and the previous clipboard contents are restored.",
     approval: "write",
   },
   {
@@ -160,9 +160,16 @@ export function registerComputerUseTools(pi: ExtensionAPI, runtime: ComputerUseR
         _onUpdate: unknown,
         ctx: ExtensionContext,
       ) {
+        // Upstream paste requires an explicit format; rerouted type_text input
+        // is plain text by definition.
+        const reroute = tool.name === "computer_use_type_text" && needsClipboardInput(params.text);
+        const upstreamTool = reroute ? "paste" : tool.mcpToolName;
+        const upstreamParams = reroute
+          ? { ...params, format: "text" }
+          : params as Record<string, unknown>;
         const result = signal
-          ? await runtime.callTool(ctx, tool.mcpToolName, params as Record<string, unknown>, signal)
-          : await runtime.callTool(ctx, tool.mcpToolName, params as Record<string, unknown>);
+          ? await runtime.callTool(ctx, upstreamTool, upstreamParams, signal)
+          : await runtime.callTool(ctx, upstreamTool, upstreamParams);
         return {
           content: result.content,
           details: summarizeResult(result),
@@ -244,6 +251,14 @@ function prepareComputerUseArguments(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+// Upstream key injection cannot produce characters outside the ASCII range
+// (tab, newline, carriage return, and printable ASCII are key-representable).
+// IME scripts such as Hangul lose jamo mid-composition, so such text is routed
+// to the clipboard-based paste tool instead, before any dispatch.
+function needsClipboardInput(text: unknown): boolean {
+  return typeof text === "string" && !/^[\x09\x0A\x0D\x20-\x7E]*$/.test(text);
 }
 
 function summarizeResult(result: ComputerUseToolResult): ComputerUseToolSummary {
