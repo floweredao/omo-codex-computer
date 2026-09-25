@@ -28,24 +28,10 @@ providers, browsers, raw JavaScript, or CDP.
    project this fork is based on — this fork publishes as
    `@floweredao/omo-codex-computer`.
 
-2. Start OMO and check readiness:
-
-   ```text
-   /codex-computer status
-   ```
-
-3. Ask Codex to inspect a local app:
-
-   ```text
-   Inspect the current state of Notes and tell me which note is selected.
-   ```
-
-The tools are searchable through OMO's `tool_search`. To activate the tool
-family for the current session, run:
-
-```text
-/codex-computer enable
-```
+2. Restart OMO; the tools are searchable through `tool_search`. To activate
+   the tool family for the current session, run `/codex-computer enable`.
+   Readiness, diagnostics, and troubleshooting are covered in the Commands and
+   Troubleshooting sections below.
 
 ## Computer Use
 
