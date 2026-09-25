@@ -24,18 +24,6 @@ providers, browsers, raw JavaScript, or CDP.
    omo install git:github.com/floweredao/omo-codex-computer
    ```
 
-   Or install a local checkout:
-
-   ```bash
-   omo install ./path/to/omo-codex-computer-use
-   ```
-
-   Or load the working tree directly for development:
-
-   ```bash
-   omo -e .
-   ```
-
    Note: the unscoped npm package `omo-codex-computer` belongs to the upstream
    project this fork is based on — this fork publishes as
    `@floweredao/omo-codex-computer`.
