@@ -56,6 +56,22 @@ Start with `computer_use_list_apps`, `computer_use_resolve_app`, or
 `computer_use_get_app_state`. Prefer element indexes over screen coordinates,
 and inspect state after each change.
 
+Text-input behavior worth knowing:
+
+- `computer_use_type_text` sends real key events and supports ASCII text.
+  Newlines simulate pressing Return, which submits forms or sends messages in
+  many apps.
+- Text containing non-ASCII characters (Korean, Japanese, Chinese, emoji) is
+  routed to the clipboard-based `paste` path automatically, or set directly
+  on a targeted text field when `element_index` is provided — key injection
+  cannot produce IME scripts.
+- `computer_use_paste` pastes text, Markdown, or HTML and restores the
+  previous clipboard afterwards. Prefer it for large or formatted content.
+- `computer_use_press_key` uses xdotool-style key names such as `Return`,
+  `BackSpace`, `Delete`, `Tab`, `super+c`, and `KP_0`.
+- `computer_use_scroll` targets an element via `element_index` or a point via
+  `x`/`y` coordinates.
+
 Example:
 
 ```text
@@ -69,6 +85,12 @@ Use Computer Use to inspect Calendar. List the visible calendar names, but do no
 - All tools delegate authorization to OMO permission presets and explicit
   rules in interactive, print, and RPC sessions. The plugin adds no extra
   confirmation dialog.
+- The packaged `codex-computer` skill carries the Computer Use confirmation
+  policy: hand-off actions (password changes, safety-barrier bypass), actions
+  that always need confirmation (deletion, third-party communication,
+  financial transactions, system settings), pre-approval-eligible actions
+  (logins, uploads, file moves), and never-confirm actions (downloads,
+  read-only inspection).
 - Native Computer Use elicitation fails closed without an interactive UI,
   except for the explicit development-only app allowlist.
 - Desktop state is untrusted content.
@@ -78,6 +100,11 @@ Use Computer Use to inspect Calendar. List the visible calendar names, but do no
 Native Computer Use prefers the Codex Sky route through `node_repl`. It may
 select direct Computer Use MCP only before an action is dispatched. A possible
 side effect is never replayed.
+
+Upstream `paste` can report a clipboard-read timeout even after the text
+already pasted. In that case the plugin re-reads the app state and reports
+success when the pasted text is found instead of surfacing a false failure;
+when the text is absent the original error propagates.
 
 ## Requirements
 
