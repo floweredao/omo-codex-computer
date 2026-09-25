@@ -1,6 +1,6 @@
 {
-  "name": "omo-codex-computer",
-  "version": "0.1.1",
+  "name": "@floweredao/omo-codex-computer",
+  "version": "0.1.0",
   "description": "OMO Native plugin for OpenAI Codex Computer Use through Codex app-server",
   "repository": {
     "type": "git",

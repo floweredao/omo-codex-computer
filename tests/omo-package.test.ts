@@ -23,7 +23,7 @@ describe("OMO package contract", () => {
     const skillEntries = packageJson.pi?.skills;
 
     // Then: the package exposes one executable extension and its skills.
-    expect(packageJson.name).toBe("omo-codex-computer");
+    expect(packageJson.name).toBe("@floweredao/omo-codex-computer");
     expect(extensionEntries).toEqual(["./src/index.ts"]);
     expect(skillEntries).toEqual(["./skills"]);
 

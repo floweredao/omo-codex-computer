@@ -1,6 +1,7 @@
 # omo-codex-computer
 
 [![CI](https://github.com/floweredao/omo-codex-computer/actions/workflows/ci.yml/badge.svg)](https://github.com/floweredao/omo-codex-computer/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@floweredao/omo-codex-computer.svg)](https://www.npmjs.com/package/@floweredao/omo-codex-computer)
 [![GitHub release](https://img.shields.io/github/v/release/floweredao/omo-codex-computer.svg)](https://github.com/floweredao/omo-codex-computer/releases/latest)
 
 Use OpenAI Codex to inspect and operate local macOS apps through native
@@ -11,7 +12,13 @@ providers, browsers, raw JavaScript, or CDP.
 
 ## Quick start
 
-1. Install this repository:
+1. Install the package:
+
+   ```bash
+   omo install npm:@floweredao/omo-codex-computer
+   ```
+
+   Or install this repository directly:
 
    ```bash
    omo install git:github.com/floweredao/omo-codex-computer
@@ -29,9 +36,9 @@ providers, browsers, raw JavaScript, or CDP.
    omo -e .
    ```
 
-   Note: the npm package name `omo-codex-computer` belongs to the upstream
-   project this fork is based on — `omo install npm:omo-codex-computer`
-   installs upstream, not this repository.
+   Note: the unscoped npm package `omo-codex-computer` belongs to the upstream
+   project this fork is based on — this fork publishes as
+   `@floweredao/omo-codex-computer`.
 
 2. Start OMO and check readiness:
 
@@ -156,8 +163,10 @@ when the text is absent the original error propagates.
 Remove the package with:
 
 ```bash
-omo remove git:github.com/floweredao/omo-codex-computer
+omo remove npm:@floweredao/omo-codex-computer
 ```
+
+Or with the source used to install it (for example `git:github.com/floweredao/omo-codex-computer`).
 
 ## Development
 
@@ -195,6 +204,7 @@ Automatic workflow triggers are currently disabled; CI and releases run via
 `workflow_dispatch` until re-enabled. Release notes are generated per release.
 
 - [Release notes](https://github.com/floweredao/omo-codex-computer/releases)
+- [npm package](https://www.npmjs.com/package/@floweredao/omo-codex-computer)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)
 - [Report an issue](https://github.com/floweredao/omo-codex-computer/issues)
