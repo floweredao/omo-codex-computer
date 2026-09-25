@@ -1,7 +1,6 @@
 # omo-codex-computer
 
 [![CI](https://github.com/floweredao/omo-codex-computer/actions/workflows/ci.yml/badge.svg)](https://github.com/floweredao/omo-codex-computer/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/omo-codex-computer.svg)](https://www.npmjs.com/package/omo-codex-computer)
 [![GitHub release](https://img.shields.io/github/v/release/floweredao/omo-codex-computer.svg)](https://github.com/floweredao/omo-codex-computer/releases/latest)
 
 Use OpenAI Codex to inspect and operate local macOS apps through native
@@ -12,17 +11,27 @@ providers, browsers, raw JavaScript, or CDP.
 
 ## Quick start
 
-1. Install the published package:
+1. Install this repository:
 
    ```bash
-   omo install npm:omo-codex-computer
+   omo install git:github.com/floweredao/omo-codex-computer
    ```
 
-   Or load the working tree directly:
+   Or install a local checkout:
+
+   ```bash
+   omo install ./path/to/omo-codex-computer-use
+   ```
+
+   Or load the working tree directly for development:
 
    ```bash
    omo -e .
    ```
+
+   Note: the npm package name `omo-codex-computer` belongs to the upstream
+   project this fork is based on — `omo install npm:omo-codex-computer`
+   installs upstream, not this repository.
 
 2. Start OMO and check readiness:
 
@@ -147,7 +156,7 @@ when the text is absent the original error propagates.
 Remove the package with:
 
 ```bash
-omo remove npm:omo-codex-computer
+omo remove git:github.com/floweredao/omo-codex-computer
 ```
 
 ## Development
@@ -182,12 +191,10 @@ automation invariants.
 
 ## Releases and project links
 
-Owner pull requests run the complete check suite and merge automatically only
-after required CI passes. Qualifying merges produce a patch release with
-generated GitHub release notes and npm trusted-publishing provenance.
+Automatic workflow triggers are currently disabled; CI and releases run via
+`workflow_dispatch` until re-enabled. Release notes are generated per release.
 
 - [Release notes](https://github.com/floweredao/omo-codex-computer/releases)
-- [npm package](https://www.npmjs.com/package/omo-codex-computer)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)
 - [Report an issue](https://github.com/floweredao/omo-codex-computer/issues)
