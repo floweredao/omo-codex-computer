@@ -141,6 +141,13 @@ describe("OMO Computer Use tools", () => {
 
     // Then: the upstream tool stays type_text.
     expect(callTool).toHaveBeenLastCalledWith(ctx, "type_text", { app: "Notes", text: "hello\nworld" });
+
+    // When: a text field is targeted by element_index, input goes to set_value.
+    await getTool(pi, "computer_use_type_text")
+      .execute("call-3", { app: "Notes", element_index: "133", text: "한글 텍스트" }, undefined, undefined, ctx);
+
+    // Then: the upstream call is set_value, which handles IME text directly.
+    expect(callTool).toHaveBeenLastCalledWith(ctx, "set_value", { app: "Notes", element_index: "133", value: "한글 텍스트" });
   });
 
   it("keeps click pairing provider-compatible and validates before dispatch", () => {

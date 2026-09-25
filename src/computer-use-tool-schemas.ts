@@ -45,11 +45,12 @@ export function createComputerUseParameterSchemas(): Record<ComputerUseToolName,
     computer_use_click: click,
     computer_use_type_text: object({
       app,
-      text: Type.String({ description: "The text to type." }),
+      text: Type.String({ description: "The text to type. Non-ASCII text is pasted via the clipboard, or set directly on the field when element_index targets it." }),
+      element_index: Type.Optional(elementIndex),
     }),
     computer_use_press_key: object({
       app,
-      key: Type.String({ description: "The key or keyboard shortcut to press." }),
+      key: Type.String({ description: "The key or keyboard shortcut to press. Uses xdotool-style names: a, Return, BackSpace, Delete, Tab, super+c, Up, KP_0." }),
     }),
     computer_use_scroll: object({
       app,

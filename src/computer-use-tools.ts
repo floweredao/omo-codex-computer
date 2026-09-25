@@ -56,14 +56,14 @@ const COMPUTER_USE_UPSTREAM_TOOLS = [
     name: "computer_use_type_text",
     mcpToolName: "type_text",
     label: "Type Text",
-    description: "Type text into an application through Computer Use. Key injection only supports ASCII; text containing non-ASCII characters (for example Korean, Japanese, Chinese, or emoji) is pasted via the clipboard instead of typed, and the previous clipboard contents are restored.",
+    description: "Type text into an application through Computer Use. Key injection only supports ASCII; text containing non-ASCII characters (for example Korean, Japanese, Chinese, or emoji) is pasted via the clipboard instead, and when element_index targets a text field its value is set directly without touching the clipboard. Newlines in text simulate pressing Return, which submits the form or sends the message in many apps.",
     approval: "write",
   },
   {
     name: "computer_use_press_key",
     mcpToolName: "press_key",
     label: "Press Key",
-    description: "Press a key or keyboard shortcut through Computer Use.",
+    description: "Press a key or keyboard shortcut through Computer Use. Uses xdotool-style key names (for example a, Return, BackSpace, Delete, Tab, super+c, Up, KP_0).",
     approval: "write",
   },
   {
@@ -160,13 +160,13 @@ export function registerComputerUseTools(pi: ExtensionAPI, runtime: ComputerUseR
         _onUpdate: unknown,
         ctx: ExtensionContext,
       ) {
-        // Upstream paste requires an explicit format; rerouted type_text input
-        // is plain text by definition.
-        const reroute = tool.name === "computer_use_type_text" && needsClipboardInput(params.text);
-        const upstreamTool = reroute ? "paste" : tool.mcpToolName;
-        const upstreamParams = reroute
-          ? { ...params, format: "text" }
-          : params as Record<string, unknown>;
+        // Text-input routing: a targeted text field gets set_value directly
+        // (no key events, no clipboard), untargeted non-ASCII goes to the
+        // clipboard-based paste path (key injection can't produce IME scripts),
+        // and everything else keeps real key events via type_text.
+        const reroute = tool.name === "computer_use_type_text" ? routeTypeText(params) : undefined;
+        const upstreamTool = reroute?.tool ?? tool.mcpToolName;
+        const upstreamParams = reroute?.params ?? params as Record<string, unknown>;
         const result = signal
           ? await runtime.callTool(ctx, upstreamTool, upstreamParams, signal)
           : await runtime.callTool(ctx, upstreamTool, upstreamParams);
@@ -261,6 +261,24 @@ function needsClipboardInput(text: unknown): boolean {
   return typeof text === "string" && !/^[\x09\x0A\x0D\x20-\x7E]*$/.test(text);
 }
 
+// Decides which upstream tool actually performs a computer_use_type_text call.
+// element_index means a text field was targeted, so set_value replaces its
+// contents — the most reliable input and it also handles IME text without the
+// clipboard. Otherwise non-ASCII falls back to paste, ASCII keeps key events.
+function routeTypeText(
+  params: Record<string, unknown>,
+): { tool: "set_value" | "paste"; params: Record<string, unknown> } | undefined {
+  const elementIndex = params.element_index;
+  if (typeof elementIndex === "string" && elementIndex !== "") {
+    return { tool: "set_value", params: { app: params.app, element_index: elementIndex, value: params.text } };
+  }
+  if (needsClipboardInput(params.text)) {
+    // Upstream paste requires an explicit format; type_text input is plain text.
+    return { tool: "paste", params: { ...params, format: "text" } };
+  }
+  return undefined;
+}
+
 function summarizeResult(result: ComputerUseToolResult): ComputerUseToolSummary {
   const counts: Record<string, number> = {};
   const contentTypes: string[] = [];
@@ -282,3 +300,4 @@ function summarizeResult(result: ComputerUseToolResult): ComputerUseToolSummary 
 function getContentType(block: OmpContentBlock): string {
   return typeof block.type === "string" ? block.type : "unknown";
 }
+
