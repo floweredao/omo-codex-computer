@@ -1,17 +1,17 @@
 {
   "name": "omo-codex-computer",
   "version": "0.1.1",
-  "description": "OMO Native plugin for OpenAI Codex Computer Use and first-party Chrome automation through Codex app-server",
+  "description": "OMO Native plugin for OpenAI Codex Computer Use through Codex app-server",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mastertyko/omo-codex-computer.git"
+    "url": "git+https://github.com/floweredao/omo-codex-computer.git"
   },
   "bugs": {
-    "url": "https://github.com/mastertyko/omo-codex-computer/issues"
+    "url": "https://github.com/floweredao/omo-codex-computer/issues"
   },
-  "homepage": "https://github.com/mastertyko/omo-codex-computer#readme",
+  "homepage": "https://github.com/floweredao/omo-codex-computer#readme",
   "type": "module",
-  "packageManager": "bun@1.3.14",
+  "packageManager": "bun@1.4.2",
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"
@@ -39,8 +39,7 @@
     "senpi",
     "pi-package",
     "codex",
-    "computer-use",
-    "chrome-automation"
+    "computer-use"
   ],
   "license": "MIT",
   "publishConfig": {

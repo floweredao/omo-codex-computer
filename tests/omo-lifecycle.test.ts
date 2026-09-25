@@ -1,11 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CHROME_TOOL_NAMES } from "../src/chrome-tools";
 import { COMPUTER_USE_TOOL_NAMES } from "../src/computer-use-tools";
 import omoCodexComputer from "../src/index";
 
 const runtimeMock = vi.hoisted(() => {
   const computerInstances: FakeComputerRuntime[] = [];
-  const chromeInstances: FakeChromeRuntime[] = [];
 
   class FakeComputerRuntime {
     setContext = vi.fn();
@@ -18,30 +16,14 @@ const runtimeMock = vi.hoisted(() => {
     }
   }
 
-  class FakeChromeRuntime {
-    beginAgent = vi.fn(async () => {});
-    endAgent = vi.fn(async () => {});
-    shutdown = vi.fn(async () => {});
-    restart = vi.fn(async () => {});
-
-    constructor() {
-      chromeInstances.push(this);
-    }
-  }
-
   return {
     FakeComputerRuntime,
-    FakeChromeRuntime,
     computerInstances,
-    chromeInstances,
   };
 });
 
 vi.mock("../src/runtime", () => ({
   ComputerUseRuntime: runtimeMock.FakeComputerRuntime,
-}));
-vi.mock("../src/chrome-runtime", () => ({
-  ChromeRuntime: runtimeMock.FakeChromeRuntime,
 }));
 
 function createFakePi() {
@@ -100,67 +82,57 @@ function createContext() {
 
 beforeEach(() => {
   runtimeMock.computerInstances.length = 0;
-  runtimeMock.chromeInstances.length = 0;
 });
 
-describe("OMO Chrome lifecycle", () => {
-  it("keeps Chrome alive until agent_settled and cleans the session", async () => {
+describe("OMO Computer Use lifecycle", () => {
+  it("keeps the runtime alive until agent_settled and cleans the session", async () => {
     // Given: a registered OMO extension and active session.
     const pi = createFakePi();
     const ctx = createContext();
     omoCodexComputer(pi as never);
     const computer = runtimeMock.computerInstances[0];
-    const chrome = runtimeMock.chromeInstances[0];
 
     // When: a run starts, emits a retryable agent_end, then fully settles.
     await pi.handlers.get("session_start")?.[0]?.(
       { type: "session_start", reason: "startup" },
       ctx,
     );
-    await pi.handlers.get("agent_start")?.[0]?.({ type: "agent_start" }, ctx);
     await pi.handlers.get("agent_end")?.[0]?.(
       { type: "agent_end", willRetry: true },
       ctx,
     );
 
     // Then: no terminal cleanup happens at agent_end.
-    expect(chrome).toBeDefined();
     expect(pi.handlers.has("agent_end")).toBe(false);
     expect(computer?.shutdown).not.toHaveBeenCalled();
-    expect(chrome?.endAgent).not.toHaveBeenCalled();
 
     await pi.handlers.get("agent_settled")?.[0]?.(
       { type: "agent_settled" },
       ctx,
     );
     expect(computer?.shutdown).toHaveBeenCalledOnce();
-    expect(chrome?.endAgent).toHaveBeenCalledOnce();
 
     await pi.handlers.get("session_shutdown")?.[0]?.(
       { type: "session_shutdown", reason: "exit" },
       ctx,
     );
     expect(computer?.shutdown).toHaveBeenCalledTimes(2);
-    expect(chrome?.shutdown).toHaveBeenCalledTimes(2);
   });
 
-  it("registers all Chrome tools and the management command", () => {
+  it("registers all Computer Use tools and the management command", () => {
     // Given: a fresh OMO extension host.
     const pi = createFakePi();
 
     // When: the extension registers.
     omoCodexComputer(pi as never);
 
-    // Then: Chrome and management surfaces are present.
+    // Then: the Computer Use and management surfaces are present.
     const toolNames = pi.tools.flatMap((tool) => {
       if (typeof tool !== "object" || tool === null || !("name" in tool)) return [];
       return typeof tool.name === "string" ? [tool.name] : [];
     });
-    expect(toolNames).toEqual(expect.arrayContaining([
-      "chrome_open",
-      "chrome_observe",
-      "chrome_act",
-    ]));
+    expect(toolNames).toEqual(expect.arrayContaining([...COMPUTER_USE_TOOL_NAMES]));
+    expect(toolNames).toHaveLength(COMPUTER_USE_TOOL_NAMES.length);
     expect(pi.commands.has("codex-computer")).toBe(true);
     expect(pi.handlers.has("agent_settled")).toBe(true);
   });
@@ -173,7 +145,7 @@ describe("OMO Chrome lifecycle", () => {
     const results: unknown[] = [];
 
     // When: each registered automation tool passes through plugin hooks.
-    for (const toolName of [...CHROME_TOOL_NAMES, ...COMPUTER_USE_TOOL_NAMES]) {
+    for (const toolName of COMPUTER_USE_TOOL_NAMES) {
       for (const handler of pi.handlers.get("tool_call") ?? []) {
         results.push(await handler(
           { type: "tool_call", toolCallId: "call-1", toolName, input: {} },

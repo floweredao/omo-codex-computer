@@ -1,7 +1,7 @@
 import { createRequire } from "node:module";
 
 // The name is protocol identity: Codex app-server echoes it in the userAgent
-// that chrome-capabilities parses. Only the version tracks package.json, so
+// that capability checks parse. Only the version tracks package.json, so
 // release automation bumps propagate without touching source.
 const packageJson = createRequire(import.meta.url)("../package.json") as { version?: unknown };
 

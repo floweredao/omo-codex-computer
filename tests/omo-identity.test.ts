@@ -1,8 +1,4 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  CHROME_TRUST_ENV_VAR,
-  getChromeTrustFilePath,
-} from "../src/chrome-trust";
 import { CLIENT_INFO } from "../src/client-info";
 import { logDebug } from "../src/log";
 
@@ -12,14 +8,10 @@ afterEach(() => {
 });
 
 describe("OMO plugin identity", () => {
-  it("uses OMO names for protocol and persisted trust identity", () => {
+  it("uses OMO names for protocol identity", () => {
     // Given: the OMO-only package boundary.
-    // When/Then: public and persisted identities are OMO-native.
+    // When/Then: public identity is OMO-native.
     expect(CLIENT_INFO.name).toBe("omo-codex-computer");
-    expect(CHROME_TRUST_ENV_VAR).toBe("OMO_CODEX_CHROME_TRUST");
-    expect(getChromeTrustFilePath({ HOME: "/Users/test" })).toBe(
-      "/Users/test/.config/omo-codex-computer/trusted-app-servers.json",
-    );
   });
 
   it("reads and renders the OMO debug namespace", () => {

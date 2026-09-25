@@ -16,8 +16,8 @@ Include:
 - affected commit or version
 - reproduction steps
 - expected impact
-- whether desktop/browser content, screenshots, page text, URLs, tab/history
-  data, credentials, tokens, cookies, headers, or local files can be exposed
+- whether desktop content, screenshots, credentials, tokens, cookies,
+  headers, or local files can be exposed
 
 ## Security expectations
 
@@ -27,9 +27,5 @@ recursive redaction layer.
 
 Desktop automation must fail closed when required native permissions or Codex
 dependencies are unavailable. All tool calls remain subject to OMO's permission
-preset and explicit rules, without an additional plugin confirmation.
-
-Chrome must keep browser handles and `node_repl` private, reject untrusted
-app-server versions and broken plugin contracts, decline elicitation, isolate
-one owned tab per settled run, and never replay or fall back after a possible
-dispatch.
+preset and explicit rules, without an additional plugin confirmation. A
+possibly dispatched side effect is never replayed.

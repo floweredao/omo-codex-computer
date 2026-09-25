@@ -9,7 +9,7 @@ import {
 
 const LEGACY_LIST_APPS_TEXT = [
   "Dudo CUA Test — /tmp/DudoCUATest.app/ — dev.dudo.cua-smoke [running]",
-  "Google Chrome — /Applications/Google Chrome.app/ — com.google.Chrome [running]",
+  "Safari — /Applications/Safari.app/ — com.apple.Safari [running]",
   "cmux — /Applications/cmux.app — com.cmuxterm.app [last-used=2026-07-06]",
 ].join("\n");
 
@@ -22,8 +22,8 @@ const SKY_LIST_APPS = [
     useCount: 37,
   },
   {
-    id: "com.google.Chrome",
-    displayName: "Google Chrome",
+    id: "com.apple.Safari",
+    displayName: "Safari",
     isRunning: false,
     lastUsedDate: "2026-07-26T19:02:14.289Z",
     useCount: 144,
@@ -55,10 +55,10 @@ describe("app target resolver", () => {
         upstreamAddress: "dev.dudo.cua-smoke",
       },
       {
-        displayName: "Google Chrome",
-        appPath: "/Applications/Google Chrome.app/",
-        bundleId: "com.google.Chrome",
-        upstreamAddress: "com.google.Chrome",
+        displayName: "Safari",
+        appPath: "/Applications/Safari.app/",
+        bundleId: "com.apple.Safari",
+        upstreamAddress: "com.apple.Safari",
       },
       {
         displayName: "cmux",
@@ -76,8 +76,8 @@ describe("app target resolver", () => {
         upstreamAddress: "com.openai.codex",
       },
       {
-        displayName: "Google Chrome",
-        upstreamAddress: "com.google.Chrome",
+        displayName: "Safari",
+        upstreamAddress: "com.apple.Safari",
       },
       {
         displayName: "com.apple.finder",
@@ -159,16 +159,16 @@ describe("app target resolver", () => {
       },
     });
 
-    const displayNameMatch = resolveAppTargetFromList("Google Chrome", SKY_LIST_APPS_JSON);
+    const displayNameMatch = resolveAppTargetFromList("Safari", SKY_LIST_APPS_JSON);
     expect(displayNameMatch).toMatchObject({
       status: "resolved",
       registeredAppCount: 3,
       target: {
         kind: "display_name",
-        displayName: "Google Chrome",
+        displayName: "Safari",
         appPath: undefined,
         bundleId: undefined,
-        upstreamAddress: "com.google.Chrome",
+        upstreamAddress: "com.apple.Safari",
       },
     });
 
@@ -179,21 +179,21 @@ describe("app target resolver", () => {
   });
 
   it("offers Sky app-id candidates without inventing legacy fields", () => {
-    const resolution = resolveAppTargetFromList("Chrome", SKY_LIST_APPS_JSON);
+    const resolution = resolveAppTargetFromList("Safar", SKY_LIST_APPS_JSON);
     expect(resolution).toMatchObject({
       status: "unresolved",
       registeredAppCount: 3,
       candidates: [
         {
           kind: "registered_app",
-          displayName: "Google Chrome",
+          displayName: "Safari",
           appPath: undefined,
           bundleId: undefined,
-          upstreamAddress: "com.google.Chrome",
+          upstreamAddress: "com.apple.Safari",
         },
       ],
     });
-    expect(formatAppTargetResolution(resolution)).toContain("Google Chrome — (not provided) — recommended: com.google.Chrome");
+    expect(formatAppTargetResolution(resolution)).toContain("Safari — (not provided) — recommended: com.apple.Safari");
   });
 
   it("rejects malformed Sky JSON entries", () => {

@@ -49,14 +49,13 @@ const toolNames = tools.flatMap((tool) =>
 );
 const requiredEvents = [
   "agent_settled",
-  "agent_start",
   "resources_discover",
   "session_shutdown",
   "session_start",
 ];
 
-if (toolNames.length !== 15) {
-  throw new Error(`Expected 15 tools, received ${toolNames.length}`);
+if (toolNames.length !== 12) {
+  throw new Error(`Expected 12 tools, received ${toolNames.length}`);
 }
 if (!commands.has("codex-computer")) {
   throw new Error("Missing /codex-computer command");
