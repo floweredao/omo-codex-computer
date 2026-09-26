@@ -1,6 +1,6 @@
 # omo-codex-computer
 
-[한국어](README.ko.md)
+[한국어](README-ko.md)
 
 Use OpenAI Codex to inspect and operate local macOS apps through native
 Computer Use.
