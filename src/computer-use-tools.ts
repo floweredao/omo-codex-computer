@@ -30,6 +30,36 @@ type UpstreamComputerUseToolName = (typeof COMPUTER_USE_UPSTREAM_TOOL_NAMES)[num
 type LocalComputerUseToolName = (typeof COMPUTER_USE_LOCAL_TOOL_NAMES)[number];
 type ComputerUseToolApproval = "read" | "write";
 
+// Tools stay deferred (exposure "search") so their schemas cost no context
+// until used; these terms are indexed by tool_search only, never sent to the
+// model, so agents phrasing a desktop task naturally still find the family.
+const COMPUTER_USE_SEARCH_KEYWORDS = [
+  "macOS",
+  "mac",
+  "desktop",
+  "computer use",
+  "GUI",
+  "native app",
+  "application",
+  "app window",
+  "UI automation",
+] as const;
+
+const COMPUTER_USE_TOOL_SEARCH_KEYWORDS: Record<ComputerUseToolName, readonly string[]> = {
+  computer_use_list_apps: ["running apps", "open applications", "app list", "windows"],
+  computer_use_get_app_state: ["screenshot", "screen", "capture", "accessibility tree", "inspect", "observe", "UI state"],
+  computer_use_click: ["mouse", "tap", "press button", "double click"],
+  computer_use_type_text: ["keyboard", "type", "enter text", "input"],
+  computer_use_press_key: ["keyboard shortcut", "hotkey", "keystroke"],
+  computer_use_scroll: ["scroll wheel", "page down", "swipe"],
+  computer_use_drag: ["drag and drop", "mouse drag", "move"],
+  computer_use_set_value: ["fill field", "text field", "form input", "slider", "checkbox"],
+  computer_use_select_text: ["highlight", "text selection"],
+  computer_use_perform_secondary_action: ["right click", "context menu", "control click"],
+  computer_use_paste: ["clipboard", "paste text", "markdown", "html"],
+  computer_use_resolve_app: ["resolve app", "bundle id", "pid", "app path", "invalid app"],
+};
+
 const COMPUTER_USE_UPSTREAM_TOOLS = [
   {
     name: "computer_use_list_apps",
@@ -148,7 +178,7 @@ export function registerComputerUseTools(pi: ExtensionAPI, runtime: ComputerUseR
       parameters: parametersByTool[tool.name],
       exposure: "search",
       searchText: tool.description,
-      searchKeywords: ["macOS", "desktop", "computer use", tool.mcpToolName],
+      searchKeywords: [...COMPUTER_USE_SEARCH_KEYWORDS, tool.mcpToolName, ...COMPUTER_USE_TOOL_SEARCH_KEYWORDS[tool.name]],
       searchGroup: "codex-computer",
       allowLazyActivation: true,
       executionMode: "sequential",
@@ -203,7 +233,7 @@ export function registerComputerUseTools(pi: ExtensionAPI, runtime: ComputerUseR
       parameters: parametersByTool[tool.name],
       exposure: "search",
       searchText: tool.description,
-      searchKeywords: ["macOS", "desktop", "computer use", "resolve app"],
+      searchKeywords: [...COMPUTER_USE_SEARCH_KEYWORDS, ...COMPUTER_USE_TOOL_SEARCH_KEYWORDS[tool.name]],
       searchGroup: "codex-computer",
       allowLazyActivation: true,
       executionMode: "sequential",

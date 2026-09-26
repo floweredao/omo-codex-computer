@@ -1,9 +1,14 @@
 ---
 name: codex-computer
-description: Use Codex Computer Use tools safely for local macOS app inspection and interaction.
+description: Inspect or operate local macOS apps (screenshots/accessibility state, click, type, keys, scroll, paste) with the deferred computer_use_* tools; find them with tool_search "computer use" or call computer_use_get_app_state by name.
 ---
 
 # Codex Computer Use
+
+The `computer_use_*` tools are deferred: they are not in your tool list until
+used. Find them with `tool_search` (for example `computer use screenshot`,
+`computer use click`) or call one by name, such as `computer_use_get_app_state`;
+it activates on that first call.
 
 Use these tools when the user asks you to inspect or operate a local macOS app:
 
