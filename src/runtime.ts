@@ -7,17 +7,6 @@ import { SerialQueue } from "./queue";
 import { CodexThreadManager } from "./thread-manager";
 import { CLIENT_INFO } from "./client-info";
 
-const COMPUTER_STATUS_KEY = "codex-computer";
-const COMPUTER_STATUS_LABEL = "💻 codex";
-const STATUS_DISABLED_VALUES: Record<string, true> = {
-  "0": true,
-  false: true,
-  off: true,
-  no: true,
-  disabled: true,
-  hidden: true,
-  hide: true,
-};
 const DEFAULT_IDLE_TIMEOUT_MS = 600_000;
 const PERMISSION_FALLBACK_MESSAGE = "Codex requests permission to continue.";
 
@@ -35,8 +24,6 @@ export class ComputerUseRuntime {
   private shutdownPromise: Promise<void> | undefined;
   /** Bumped by shutdown: stale queued calls must not resurrect the child. */
   private epoch = 0;
-  private statusVisible = getStatusVisibleByDefault();
-  private statusValue = "idle";
 
   constructor() {
     this.client.onServerRequest((request, responder) => this.handleServerRequest(request, responder));
@@ -44,16 +31,10 @@ export class ComputerUseRuntime {
 
   setContext(ctx: ExtensionContext): void {
     this.latestContext = ctx;
-    if (!this.statusVisible) this.renderStatus();
   }
 
   resetSession(): void {
     this.backend.reset();
-  }
-
-  setStatusVisible(visible: boolean): void {
-    this.statusVisible = visible;
-    this.renderStatus();
   }
 
   async shutdown(): Promise<void> {
@@ -75,7 +56,6 @@ export class ComputerUseRuntime {
     this.initializePromise = undefined;
     this.backend.reset();
     await this.client.stop();
-    this.setStatus("idle");
   }
 
   async initialize(): Promise<InitializeResponse> {
@@ -155,22 +135,17 @@ export class ComputerUseRuntime {
     }
 
     this.clearIdleTimer();
-    this.setStatus(`resolving: ${app}`);
 
     try {
       await this.initialize();
       if (signal?.aborted) throw createAbortError(`Aborted Computer Use app target resolution for ${app}`);
-      const result = await this.backend.resolveAppTarget(ctx.cwd, app, signal);
-      this.setStatus("ready");
-      return result;
+      return await this.backend.resolveAppTarget(ctx.cwd, app, signal);
     } catch (error) {
       if (signal?.aborted) {
-        this.setStatus("idle");
         if (error instanceof Error && error.name === "AbortError") throw error;
         throw createAbortError(`Aborted Computer Use app target resolution for ${app}`);
       }
 
-      this.setStatus("error");
       throw error;
     } finally {
       signal?.removeEventListener("abort", abortShutdown);
@@ -203,22 +178,17 @@ export class ComputerUseRuntime {
     }
 
     this.clearIdleTimer();
-    this.setStatus(typeof args.app === "string" ? `working: ${args.app}` : "working");
 
     try {
       await this.initialize();
       if (signal?.aborted) throw createAbortError(`Aborted Computer Use tool call ${tool}`);
-      const result = await this.backend.callTool(ctx.cwd, tool, args, signal);
-      this.setStatus("ready");
-      return result;
+      return await this.backend.callTool(ctx.cwd, tool, args, signal);
     } catch (error) {
       if (signal?.aborted) {
-        this.setStatus("idle");
         if (error instanceof Error && error.name === "AbortError") throw error;
         throw createAbortError(`Aborted Computer Use tool call ${tool}`);
       }
 
-      this.setStatus("error");
       throw error;
     } finally {
       signal?.removeEventListener("abort", abortShutdown);
@@ -241,7 +211,6 @@ export class ComputerUseRuntime {
 
     const params = getElicitationParams(request.params);
     const message = params.message ?? PERMISSION_FALLBACK_MESSAGE;
-    this.setStatus("permission");
     logDebug("elicitation.request", {
       method: request.method,
       serverName: params.serverName,
@@ -279,17 +248,6 @@ export class ComputerUseRuntime {
 
     logDebug(approved ? "elicitation.accept.user" : "elicitation.decline.user", { serverName: params.serverName });
     responder.accept({ action: approved ? "accept" : "decline", content: approved ? {} : null });
-  }
-
-  private setStatus(value: string): void {
-    this.statusValue = value;
-    this.renderStatus();
-  }
-
-  private renderStatus(): void {
-    const ctx = this.latestContext;
-    if (!ctx?.hasUI) return;
-    ctx.ui.setStatus(COMPUTER_STATUS_KEY, this.statusVisible ? `${COMPUTER_STATUS_LABEL}: ${this.statusValue}` : undefined);
   }
 
   private clearIdleTimer(): void {
@@ -350,11 +308,6 @@ function getElicitationParams(params: unknown): { message?: string; serverName?:
     serverName: typeof record.serverName === "string" ? record.serverName : undefined,
     subtitle: typeof subtitle === "string" ? subtitle : undefined,
   };
-}
-
-function getStatusVisibleByDefault(): boolean {
-  const value = process.env.OMO_CODEX_COMPUTER_STATUS?.trim().toLowerCase();
-  return value === undefined || STATUS_DISABLED_VALUES[value] !== true;
 }
 
 function getIdleTimeoutMs(): number | undefined {

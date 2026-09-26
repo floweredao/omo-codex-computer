@@ -12,8 +12,6 @@ const COMMANDS = [
   "enable",
   "disable",
   "restart",
-  "hide-status",
-  "show-status",
 ] as const;
 
 export default function omoCodexComputer(pi: ExtensionAPI): void {
@@ -77,22 +75,6 @@ export default function omoCodexComputer(pi: ExtensionAPI): void {
           ctx,
           "Codex automation runtime restarted. It will reconnect on the next tool call.",
         );
-        return;
-      }
-
-      if (command === "hide-status") {
-        computerRuntime.setStatusVisible(false);
-        sendCommandMessage(
-          pi,
-          ctx,
-          "Codex Computer Use footer status hidden. Run /codex-computer show-status to show it again.",
-        );
-        return;
-      }
-
-      if (command === "show-status") {
-        computerRuntime.setStatusVisible(true);
-        sendCommandMessage(pi, ctx, "Codex Computer Use footer status shown.");
         return;
       }
 

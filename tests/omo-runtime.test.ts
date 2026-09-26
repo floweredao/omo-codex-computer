@@ -1,11 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ComputerUseRuntime, shouldDevAutoAccept } from "../src/runtime";
 
-const STATUS_ENV = "OMO_CODEX_COMPUTER_STATUS";
 const AUTO_ACCEPT_ENV = "OMO_CODEX_COMPUTER_DEV_AUTO_ACCEPT_APPS";
 
 afterEach(() => {
-  delete process.env[STATUS_ENV];
   delete process.env[AUTO_ACCEPT_ENV];
 });
 
@@ -52,22 +50,57 @@ describe("OMO Computer Use runtime cancellation", () => {
   );
 });
 
-describe("OMO Computer Use runtime configuration", () => {
-  it("reads the OMO status namespace", () => {
-    // Given: OMO disables the footer status before runtime creation.
-    process.env[STATUS_ENV] = "off";
+describe("OMO Computer Use runtime footer", () => {
+  it.each([
+    ["succeeds", () => Promise.resolve({ content: [] })],
+    ["fails", () => Promise.reject(new Error("upstream failure"))],
+  ] as const)("never writes footer status when a tool call %s", async (_outcome, backendResult) => {
+    // Given: an interactive host whose UI would render any footer status.
     const setStatus = vi.fn();
     const runtime = new ComputerUseRuntime();
+    const ctx = { cwd: "/tmp/project", hasUI: true, ui: { setStatus } };
+    vi.spyOn(runtime, "initialize").mockResolvedValue({
+      userAgent: "test", codexHome: "/tmp/codex", platformFamily: "unix", platformOs: "macos",
+    });
+    vi.spyOn(runtime.client, "stop").mockResolvedValue();
+    vi.spyOn(runtime.backend, "callTool").mockImplementation(backendResult);
 
-    // When: the runtime receives its OMO context.
-    runtime.setContext({
-      hasUI: true,
-      ui: { setStatus },
-    } as never);
+    // When: a tool call runs to completion and the runtime shuts down.
+    await runtime.callTool(ctx as never, "list_apps", { app: "Finder" }).catch(() => undefined);
+    await runtime.shutdown();
 
-    // Then: it clears the status instead of rendering an OMO default.
-    expect(setStatus).toHaveBeenCalledWith("codex-computer", undefined);
+    // Then: the plugin leaves the footer untouched.
+    expect(setStatus).not.toHaveBeenCalled();
   });
+
+  it("works with a host UI that has no footer status API", async () => {
+    // Given: an interactive host that only offers confirmation dialogs.
+    const confirm = vi.fn(async () => true);
+    const runtime = new ComputerUseRuntime();
+    const ctx = { cwd: "/tmp/project", hasUI: true, ui: { confirm } };
+    vi.spyOn(runtime, "initialize").mockResolvedValue({
+      userAgent: "test", codexHome: "/tmp/codex", platformFamily: "unix", platformOs: "macos",
+    });
+    vi.spyOn(runtime.client, "stop").mockResolvedValue();
+    vi.spyOn(runtime.backend, "callTool").mockResolvedValue({ content: [] });
+    const accept = vi.fn();
+
+    // When: a tool call runs and Codex asks for app permission.
+    const result = await runtime.callTool(ctx as never, "list_apps", {});
+    await runtime.handleServerRequestForTest(
+      { id: 1, method: "mcpServer/elicitation/request", params: { message: 'Allow Computer Use to use "Finder"?' } },
+      { accept, reject: vi.fn() },
+    );
+    await runtime.shutdown();
+
+    // Then: the call and the permission prompt both complete normally.
+    expect(result).toEqual({ content: [] });
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(accept).toHaveBeenCalledWith({ action: "accept", content: {} });
+  });
+});
+
+describe("OMO Computer Use runtime configuration", () => {
 
   it("reads the OMO development permission namespace", () => {
     // Given: one explicitly allowed application in the OMO namespace.

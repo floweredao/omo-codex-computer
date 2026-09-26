@@ -112,14 +112,11 @@ when the text is absent the original error propagates.
 | `/codex-computer enable` | Activates the Computer Use tools. |
 | `/codex-computer disable` | Deactivates the tools and stops the runtime. |
 | `/codex-computer restart` | Restarts the dedicated app-server runtime. |
-| `/codex-computer hide-status` | Hides the Computer Use footer status. |
-| `/codex-computer show-status` | Shows the Computer Use footer status. |
 
 ## Configuration
 
 | Variable | Effect |
 | --- | --- |
-| `OMO_CODEX_COMPUTER_STATUS=off` | Start with the Computer Use footer status hidden. |
 | `OMO_CODEX_COMPUTER_IDLE_TIMEOUT_MS=<milliseconds>` | Set the idle child shutdown timeout. |
 | `OMO_CODEX_COMPUTER_DEBUG=1` | Write redacted diagnostics to stderr. |
 | `OMO_CODEX_COMPUTER_LOG=<path>` | Append redacted diagnostics to a log file. |

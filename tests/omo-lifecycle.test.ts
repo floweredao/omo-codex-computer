@@ -8,7 +8,6 @@ const runtimeMock = vi.hoisted(() => {
   class FakeComputerRuntime {
     setContext = vi.fn();
     resetSession = vi.fn();
-    setStatusVisible = vi.fn();
     shutdown = vi.fn(async () => {});
 
     constructor() {
