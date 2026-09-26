@@ -16,10 +16,11 @@ providers, browsers, raw JavaScript, or CDP.
    omo install git:github.com/floweredao/omo-codex-computer
    ```
 
-2. Restart OMO; the tools are searchable through `tool_search`. To activate
-   the tool family for the current session, run `/codex-computer enable`.
-   Readiness, diagnostics, and troubleshooting are covered in the Commands and
-   Troubleshooting sections below.
+2. Restart OMO. No activation step is needed: the tools are deferred, so they
+   cost no context until an agent finds them with `tool_search` or calls one
+   by name, and they then activate on first use. Readiness, diagnostics, and
+   troubleshooting are covered in the Commands and Troubleshooting sections
+   below.
 
 ## Computer Use
 
@@ -97,7 +98,7 @@ when the text is absent the original error propagates.
 | --- | --- |
 | `/codex-computer status` | Reports Computer Use readiness. |
 | `/codex-computer diagnose` | Prints the same detailed readiness report as `status`. |
-| `/codex-computer enable` | Activates the Computer Use tools. |
+| `/codex-computer enable` | Pins all twelve tools into the active set, adding their schemas (about 8K characters) to every request. Only needed for a model that does not use `tool_search`. |
 | `/codex-computer disable` | Deactivates the tools and stops the runtime. |
 | `/codex-computer restart` | Restarts the dedicated app-server runtime. |
 

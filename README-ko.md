@@ -14,7 +14,7 @@ OpenAI Codex의 네이티브 Computer Use로 로컬 macOS 앱을 살펴보고 �
    omo install git:github.com/floweredao/omo-codex-computer
    ```
 
-2. OMO를 다시 시작하면 `tool_search`로 도구를 찾을 수 있습니다. 현재 세션에서 도구 묶음을 켜려면 `/codex-computer enable`을 실행하세요. 준비 상태 확인, 진단, 문제 해결은 아래 명령어와 문제 해결 섹션에 있습니다.
+2. OMO를 다시 시작합니다. 따로 켤 필요는 없습니다. 도구는 지연 노출되어 에이전트가 `tool_search`로 찾거나 이름으로 호출하기 전까지 컨텍스트를 차지하지 않고, 처음 쓸 때 활성화됩니다. 준비 상태 확인, 진단, 문제 해결은 아래 명령어와 문제 해결 섹션에 있습니다.
 
 ## Computer Use
 
@@ -69,7 +69,7 @@ Computer Use로 캘린더 앱을 살펴봐. 보이는 캘린더 이름을 나열
 | --- | --- |
 | `/codex-computer status` | Computer Use 준비 상태를 보고합니다. |
 | `/codex-computer diagnose` | `status`와 같은 상세 준비 상태 보고서를 출력합니다. |
-| `/codex-computer enable` | Computer Use 도구를 켭니다. |
+| `/codex-computer enable` | 도구 12개를 활성 목록에 고정해 스키마(약 8K자)를 매 요청에 싣습니다. `tool_search`를 쓰지 않는 모델에만 필요합니다. |
 | `/codex-computer disable` | 도구를 끄고 런타임을 중지합니다. |
 | `/codex-computer restart` | 전용 app-server 런타임을 다시 시작합니다. |
 
